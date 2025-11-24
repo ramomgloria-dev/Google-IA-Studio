@@ -1,0 +1,5 @@
+{
+  "name": "FiscalInconsistencyManager",
+  "description": "A dashboard to manage and resolve inconsistencies in fiscal invoices (NF-e).",
+  "requestFramePermissions": []
+}
