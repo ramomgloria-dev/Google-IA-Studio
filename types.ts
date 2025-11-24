@@ -19,6 +19,7 @@ export interface User {
   code: string;
   consincoUser: string;
   email: string;
+  company: string; // New Field: Company/Store linkage
 
   // Permissions & Scope
   areaIds: string[]; // Can belong to multiple areas

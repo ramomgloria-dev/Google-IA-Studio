@@ -17,6 +17,7 @@ export const INITIAL_USERS: User[] = [
     code: '001',
     consincoUser: 'ADMIN',
     email: 'admin@empresa.com',
+    company: 'Matriz',
     areaIds: [],
     allowedPages: ['dashboard', 'reports', 'areas', 'users'],
     allowedReports: ['proactivity', 'motives']
@@ -28,6 +29,7 @@ export const INITIAL_USERS: User[] = [
     code: '102',
     consincoUser: 'JOAO.SILVA',
     email: 'joao.silva@empresa.com',
+    company: 'Loja 01',
     areaIds: ['4'], // Fiscal
     allowedPages: ['dashboard', 'reports'],
     allowedReports: ['proactivity']
@@ -39,6 +41,7 @@ export const INITIAL_USERS: User[] = [
     code: '103',
     consincoUser: 'MARIA.SOUZA',
     email: 'maria.souza@empresa.com',
+    company: 'Matriz',
     areaIds: ['2'], // Cadastro
     allowedPages: ['dashboard'],
     allowedReports: []
@@ -50,6 +53,7 @@ export const INITIAL_USERS: User[] = [
     code: '104',
     consincoUser: 'CARLOS.OLIVEIRA',
     email: 'carlos.o@empresa.com',
+    company: 'CD 01',
     areaIds: ['3'], // Comprador
     allowedPages: ['dashboard', 'reports'],
     allowedReports: ['motives']

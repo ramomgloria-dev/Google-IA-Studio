@@ -20,6 +20,7 @@ export const UserManager: React.FC<UserManagerProps> = ({ users, areas, onAddUse
     code: '',
     consincoUser: '',
     email: '',
+    company: '',
     role: 'AREA_SPECIALIST',
     areaIds: [],
     allowedPages: ['dashboard'],
@@ -119,6 +120,17 @@ export const UserManager: React.FC<UserManagerProps> = ({ users, areas, onAddUse
                    className="w-full border border-gray-300 rounded p-2 uppercase"
                  />
                </div>
+             </div>
+
+             <div>
+               <label className="block text-sm font-medium text-gray-600">Empresa (Loja/Filial)</label>
+               <input 
+                 type="text" 
+                 value={currentUser.company || ''}
+                 onChange={e => setCurrentUser(prev => ({...prev, company: e.target.value}))}
+                 className="w-full border border-gray-300 rounded p-2"
+                 placeholder="Ex: Matriz, Loja 01..."
+               />
              </div>
 
              <div>
@@ -227,6 +239,7 @@ export const UserManager: React.FC<UserManagerProps> = ({ users, areas, onAddUse
              <tr>
                <th className="px-6 py-3">Nome / E-mail</th>
                <th className="px-6 py-3">Consinco</th>
+               <th className="px-6 py-3">Empresa</th>
                <th className="px-6 py-3">Perfil</th>
                <th className="px-6 py-3">Áreas (Clusters)</th>
                <th className="px-6 py-3 text-right">Ações</th>
@@ -242,6 +255,9 @@ export const UserManager: React.FC<UserManagerProps> = ({ users, areas, onAddUse
                 <td className="px-6 py-4">
                   <div className="text-xs"><span className="font-semibold">User:</span> {user.consincoUser}</div>
                   <div className="text-xs text-gray-500">Cod: {user.code}</div>
+                </td>
+                 <td className="px-6 py-4 text-gray-700 font-medium">
+                  {user.company}
                 </td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 rounded-full text-xs font-bold ${user.role === 'GENERAL' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
