@@ -17,6 +17,8 @@ export interface Inconsistency {
   description: string;
   isResolved: boolean;
   areaId: string; // Linked to Area
+  resolvedAt?: string; // ISO Date string of when specific item was resolved
+  resolvedBy?: string; // User ID who resolved it
 }
 
 export interface Invoice {
@@ -26,7 +28,7 @@ export interface Invoice {
   companyName: string;
   accessKey: string;
   issueDate: string; // ISO Date string YYYY-MM-DD
-  resolvedAt?: string; // ISO Date string, optional
+  resolvedAt?: string; // ISO Date string, optional (when whole invoice was finished)
   inconsistencies: Inconsistency[];
   observations?: string;
 }

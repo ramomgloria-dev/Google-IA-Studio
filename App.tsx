@@ -5,9 +5,10 @@ import { AnalyticsBar } from './components/AnalyticsBar';
 import { InconsistencyModal } from './components/InconsistencyModal';
 import { AreaManager } from './components/AreaManager';
 import { Pagination } from './components/Pagination';
+import { Reports } from './components/Reports';
 import { Invoice, FilterState, Area, User } from './types';
 import { INITIAL_INVOICES, INITIAL_AREAS, INITIAL_USERS } from './mockData';
-import { LayoutDashboard, Settings, UserCircle2, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Settings, UserCircle2, ChevronDown, BarChart2 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -15,22 +16,13 @@ const App: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>(INITIAL_INVOICES);
   const [areas, setAreas] = useState<Area[]>(INITIAL_AREAS);
   const [currentUser, setCurrentUser] = useState<User>(INITIAL_USERS[0]);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'areas'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'areas' | 'reports'>('dashboard');
 
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   
   const [activeFilters, setActiveFilters] = useState<FilterState>({
-    company: '',
-    nfeNumber: '',
-    startDate: '',
-    endDate: '',
-    status: 'all'
-  });
-  
-  // Temporary filter state for the inputs (applied only on button click)
-  const [tempFilters, setTempFilters] = useState<FilterState>({
     company: '',
     nfeNumber: '',
     startDate: '',
@@ -111,12 +103,8 @@ const App: React.FC = () => {
   };
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
-    setTempFilters(prev => ({ ...prev, [key]: value }));
-  };
-
-  const applyFilters = () => {
-    setActiveFilters(tempFilters);
-    setCurrentPage(1); // Reset to first page on filter apply
+    setActiveFilters(prev => ({ ...prev, [key]: value }));
+    setCurrentPage(1); // Reset to first page on filter change
   };
 
   const clearFilters = () => {
@@ -127,7 +115,6 @@ const App: React.FC = () => {
       endDate: '',
       status: 'all'
     };
-    setTempFilters(emptyState);
     setActiveFilters(emptyState);
     setCurrentPage(1);
   };
@@ -167,11 +154,19 @@ const App: React.FC = () => {
             <div className="flex bg-gray-100 p-1 rounded-md">
               <button
                 onClick={() => setCurrentView('dashboard')}
-                className={`px-3 py-1 text-sm font-medium rounded-sm transition-all ${
+                className={`px-3 py-1 text-sm font-medium rounded-sm transition-all flex items-center gap-1 ${
                   currentView === 'dashboard' ? 'bg-white shadow text-primary-700' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Dashboard
+                <LayoutDashboard className="w-3 h-3" /> Dashboard
+              </button>
+              <button
+                onClick={() => setCurrentView('reports')}
+                className={`px-3 py-1 text-sm font-medium rounded-sm transition-all flex items-center gap-1 ${
+                  currentView === 'reports' ? 'bg-white shadow text-primary-700' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <BarChart2 className="w-3 h-3" /> Relatórios
               </button>
               <button
                 onClick={() => setCurrentView('areas')}
@@ -211,13 +206,12 @@ const App: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {currentView === 'dashboard' ? (
-          <>
+        {currentView === 'dashboard' && (
+          <div className="animate-in fade-in duration-300">
             {/* Filter Section */}
             <FilterBar 
-              filters={tempFilters}
+              filters={activeFilters}
               onFilterChange={handleFilterChange}
-              onApplyFilters={applyFilters}
               onClearFilters={clearFilters}
             />
 
@@ -244,8 +238,14 @@ const App: React.FC = () => {
               itemsPerPage={ITEMS_PER_PAGE}
               onPageChange={handlePageChange}
             />
-          </>
-        ) : (
+          </div>
+        )}
+
+        {currentView === 'reports' && (
+           <Reports invoices={invoices} areas={areas} users={INITIAL_USERS} />
+        )}
+
+        {currentView === 'areas' && (
           <AreaManager 
             areas={areas} 
             onAddArea={handleAddArea} 

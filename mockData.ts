@@ -38,7 +38,14 @@ export const INITIAL_INVOICES: Invoice[] = [
     issueDate: '2023-10-26',
     inconsistencies: [
       { id: 'inc3', description: 'Divergência no valor total dos produtos x valor da nota.', isResolved: false, areaId: '1' }, // Central
-      { id: 'inc4', description: 'CFOP 5.102 incompatível com destinatário fora do estado.', isResolved: true, areaId: '4' }, // Fiscal
+      { 
+        id: 'inc4', 
+        description: 'CFOP 5.102 incompatível com destinatário fora do estado.', 
+        isResolved: true, 
+        areaId: '4',
+        resolvedAt: '2023-10-28T10:00:00.000Z',
+        resolvedBy: 'u2' // João Fiscal
+      }, 
       { id: 'inc5', description: 'Falta informação de volume transportado.', isResolved: false, areaId: '5' } // Estoque
     ],
     observations: 'Aguardando retorno do setor fiscal.'
@@ -52,7 +59,14 @@ export const INITIAL_INVOICES: Invoice[] = [
     issueDate: '2023-10-27',
     resolvedAt: '2023-10-29T14:30:00.000Z',
     inconsistencies: [
-      { id: 'inc6', description: 'CNPJ do destinatário não cadastrado na base.', isResolved: true, areaId: '2' } // Cadastro
+      { 
+        id: 'inc6', 
+        description: 'CNPJ do destinatário não cadastrado na base.', 
+        isResolved: true, 
+        areaId: '2',
+        resolvedAt: '2023-10-29T14:30:00.000Z',
+        resolvedBy: 'u3' // Maria Cadastro
+      } 
     ],
     observations: 'Cliente cadastrado manualmente no sistema legado pelo operador João Silva.'
   },
@@ -80,5 +94,34 @@ export const INITIAL_INVOICES: Invoice[] = [
       { id: 'inc9', description: 'Valor do IPI não calculado.', isResolved: false, areaId: '4' } // Fiscal
     ],
     observations: ''
+  },
+  // Adding more resolved data for reports testing
+  {
+    id: '6',
+    nfeNumber: '0015027',
+    companyNumber: '5005',
+    companyName: 'Indústria Metalúrgica',
+    accessKey: '35231155443322000111550010000015027554433229',
+    issueDate: '2023-11-02',
+    resolvedAt: '2023-11-03T11:00:00.000Z',
+    inconsistencies: [
+      { 
+        id: 'inc10', 
+        description: 'NCM do produto "Teclado Mecânico" inválido para a operação.', 
+        isResolved: true, 
+        areaId: '4',
+        resolvedAt: '2023-11-03T11:00:00.000Z',
+        resolvedBy: 'u2'
+      },
+       { 
+        id: 'inc11', 
+        description: 'NCM do produto "Teclado Mecânico" inválido para a operação.', 
+        isResolved: true, 
+        areaId: '4',
+        resolvedAt: '2023-11-03T10:00:00.000Z',
+        resolvedBy: 'u2'
+      }
+    ],
+    observations: 'Correção em lote.'
   }
 ];

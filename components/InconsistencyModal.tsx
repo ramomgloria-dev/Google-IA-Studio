@@ -37,9 +37,18 @@ export const InconsistencyModal: React.FC<InconsistencyModalProps> = ({
       if (!prev) return null;
       return {
         ...prev,
-        inconsistencies: prev.inconsistencies.map((inc) =>
-          inc.id === id ? { ...inc, isResolved: checked } : inc
-        ),
+        inconsistencies: prev.inconsistencies.map((inc) => {
+          if (inc.id === id) {
+            return { 
+              ...inc, 
+              isResolved: checked,
+              // If checking (resolving), add timestamp and user. If unchecking, remove them.
+              resolvedAt: checked ? new Date().toISOString() : undefined,
+              resolvedBy: checked ? currentUser.id : undefined
+            };
+          }
+          return inc;
+        }),
       };
     });
   };
@@ -195,6 +204,9 @@ export const InconsistencyModal: React.FC<InconsistencyModalProps> = ({
                           </span>
                           {!canEdit && !item.isResolved && (
                              <p className="text-xs text-red-500 mt-1">Apenas usuários da área "{areaName}" ou Geral podem resolver.</p>
+                          )}
+                          {item.isResolved && item.resolvedBy && (
+                            <p className="text-xs text-green-600 mt-1">Resolvido por ID: {item.resolvedBy} em {new Date(item.resolvedAt!).toLocaleDateString()}</p>
                           )}
                         </div>
 

@@ -1,28 +1,35 @@
 import React from 'react';
 import { FilterState } from '../types';
-import { Search, Filter, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 
 interface FilterBarProps {
   filters: FilterState;
   onFilterChange: (key: keyof FilterState, value: string) => void;
-  onApplyFilters: () => void;
   onClearFilters: () => void;
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
   filters,
   onFilterChange,
-  onApplyFilters,
   onClearFilters,
 }) => {
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
-      <div className="flex items-center gap-2 mb-4 text-gray-800 font-semibold text-lg border-b pb-2">
-        <Search className="w-5 h-5 text-primary-600" />
-        <h2>Filtros de Pesquisa</h2>
+      <div className="flex items-center justify-between mb-4 border-b pb-2">
+        <div className="flex items-center gap-2 text-gray-800 font-semibold text-lg">
+          <Search className="w-5 h-5 text-primary-600" />
+          <h2>Filtros de Pesquisa</h2>
+        </div>
+        <button
+          onClick={onClearFilters}
+          className="flex items-center gap-2 px-3 py-1.5 text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors text-xs font-medium border border-transparent hover:border-gray-200"
+        >
+          <X className="w-3.5 h-3.5" />
+          Limpar Filtros
+        </button>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Company Filter */}
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-600">Empresa (Nome ou Nº)</label>
@@ -81,24 +88,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             onChange={(e) => onFilterChange('endDate', e.target.value)}
           />
         </div>
-      </div>
-
-      {/* Actions */}
-      <div className="mt-4 flex justify-end gap-3">
-        <button
-          onClick={onClearFilters}
-          className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors text-sm font-medium"
-        >
-          <X className="w-4 h-4" />
-          Limpar
-        </button>
-        <button
-          onClick={onApplyFilters}
-          className="flex items-center gap-2 px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md shadow-sm transition-all text-sm font-medium"
-        >
-          <Filter className="w-4 h-4" />
-          Filtrar
-        </button>
       </div>
     </div>
   );
