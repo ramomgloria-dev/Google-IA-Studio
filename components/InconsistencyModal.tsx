@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { Invoice, Area, User, Inconsistency } from '../types';
-import { X, Save, AlertTriangle, ArrowLeft, Building2, Key, FileText, Send, Lock, ArrowRightLeft } from 'lucide-react';
+import { X, Save, AlertTriangle, ArrowLeft, Building2, Key, FileText, Send, Lock, ArrowRightLeft, Check, Undo2, User as UserIcon } from 'lucide-react';
 
 interface InconsistencyModalProps {
   invoice: Invoice | null;
@@ -20,19 +21,22 @@ export const InconsistencyModal: React.FC<InconsistencyModalProps> = ({
   onConfirm,
 }) => {
   const [localInvoice, setLocalInvoice] = useState<Invoice | null>(null);
+  const [notesInput, setNotesInput] = useState<Record<string, string>>({});
   
-  // Validation Constants
-  const MIN_OBSERVATION_LENGTH = 50;
-
   useEffect(() => {
     if (invoice && isOpen) {
       setLocalInvoice(JSON.parse(JSON.stringify(invoice)));
+      setNotesInput({}); // Reset inputs when opening
     }
   }, [invoice, isOpen]);
 
   if (!isOpen || !localInvoice) return null;
 
-  const handleCheckboxChange = (id: string, checked: boolean) => {
+  // Handle saving an individual inconsistency
+  const handleResolveItem = (id: string) => {
+    const note = notesInput[id];
+    if (!note || note.trim().length === 0) return;
+
     setLocalInvoice((prev) => {
       if (!prev) return null;
       return {
@@ -41,16 +45,47 @@ export const InconsistencyModal: React.FC<InconsistencyModalProps> = ({
           if (inc.id === id) {
             return { 
               ...inc, 
-              isResolved: checked,
-              // If checking (resolving), add timestamp and user. If unchecking, remove them.
-              resolvedAt: checked ? new Date().toISOString() : undefined,
-              resolvedBy: checked ? currentUser.id : undefined
+              isResolved: true,
+              solutionNotes: note,
+              resolvedAt: new Date().toISOString(),
+              resolvedBy: currentUser.id
             };
           }
           return inc;
         }),
       };
     });
+  };
+
+  // Handle undoing a resolution
+  const handleUndoItem = (id: string) => {
+    setLocalInvoice((prev) => {
+      if (!prev) return null;
+      // Restore the note to the input
+      const item = prev.inconsistencies.find(i => i.id === id);
+      if (item && item.solutionNotes) {
+        setNotesInput(curr => ({ ...curr, [id]: item.solutionNotes || '' }));
+      }
+
+      return {
+        ...prev,
+        inconsistencies: prev.inconsistencies.map((inc) => {
+          if (inc.id === id) {
+            return { 
+              ...inc, 
+              isResolved: false,
+              resolvedAt: undefined,
+              resolvedBy: undefined
+            };
+          }
+          return inc;
+        }),
+      };
+    });
+  };
+
+  const handleInputChange = (id: string, text: string) => {
+    setNotesInput(prev => ({ ...prev, [id]: text }));
   };
 
   const handleAreaChange = (inconsistencyId: string, newAreaId: string) => {
@@ -65,26 +100,21 @@ export const InconsistencyModal: React.FC<InconsistencyModalProps> = ({
     });
   };
 
-  const handleObservationChange = (text: string) => {
-    setLocalInvoice((prev) => {
-      if (!prev) return null;
-      return { ...prev, observations: text };
-    });
-  };
-
   const handleSave = () => {
-    if (localInvoice && !isSaveDisabled) {
+    if (localInvoice) {
       onConfirm(localInvoice);
     }
   };
 
-  const handleNotifyArea = (areaName: string) => {
-    alert(`E-mail de notificação enviado para a equipe de: ${areaName}.\n\n"Existem pendências na nota ${localInvoice.nfeNumber} que impedem sua liberação. Favor verificar na Consinco."`);
+  const handleNotifyArea = (areaId: string, areaName: string) => {
+    const area = areas.find(a => a.id === areaId);
+    const emails = area?.emails || [];
+    const emailString = emails.length > 0 ? emails.join(', ') : 'Nenhum e-mail cadastrado';
+    
+    alert(`NOTIFICAÇÃO ENVIADA!\n\nDestinatários: ${emailString}\nAssunto: Pendência na Nota ${localInvoice.nfeNumber}\nMensagem: "Favor verificar inconsistências pendentes na área de ${areaName}."`);
   };
 
   const unresolvedCount = localInvoice.inconsistencies.filter(i => !i.isResolved).length;
-  const observationLength = localInvoice.observations?.length || 0;
-  const isSaveDisabled = observationLength < MIN_OBSERVATION_LENGTH;
 
   // Group inconsistencies by Area
   const inconsistenciesByArea = localInvoice.inconsistencies.reduce<Record<string, Inconsistency[]>>((acc, inc) => {
@@ -96,7 +126,7 @@ export const InconsistencyModal: React.FC<InconsistencyModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-4xl rounded-xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-white w-full max-w-5xl rounded-xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
         
         {/* Header */}
         <div className="bg-gray-50 p-6 border-b border-gray-200 flex justify-between items-start">
@@ -122,120 +152,148 @@ export const InconsistencyModal: React.FC<InconsistencyModalProps> = ({
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/50">
           
           {/* Status Banner */}
-          <div className={`p-4 rounded-lg border flex items-center gap-3 ${unresolvedCount === 0 ? 'bg-green-50 border-green-200 text-green-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+          <div className={`p-4 rounded-lg border flex items-center gap-3 shadow-sm ${unresolvedCount === 0 ? 'bg-green-50 border-green-200 text-green-800' : 'bg-white border-amber-200 text-amber-800'}`}>
             <AlertTriangle className={`w-5 h-5 ${unresolvedCount === 0 ? 'text-green-600' : 'text-amber-600'}`} />
             <div>
               <p className="font-semibold">{unresolvedCount === 0 ? 'Todas as inconsistências resolvidas!' : `Existem ${unresolvedCount} inconsistências pendentes.`}</p>
-              <p className="text-sm opacity-80">
-                {unresolvedCount > 0 && "A nota só será liberada após todas as áreas resolverem suas pendências."}
-              </p>
+              {unresolvedCount > 0 && (
+                <p className="text-sm opacity-80 mt-1">
+                  Para liberar a nota, descreva a solução de cada item e clique no botão de confirmação.
+                </p>
+              )}
             </div>
           </div>
 
           {/* Inconsistencies List Grouped by Area */}
-          <div className="space-y-6">
+          <div className="space-y-8">
             {Object.entries(inconsistenciesByArea).map(([areaId, items]: [string, Inconsistency[]]) => {
               const area = areas.find(a => a.id === areaId);
-              const areaName = area ? area.name : 'Área Desconhecida / Removida';
+              const areaName = area ? area.name : 'Área Desconhecida';
               
               const areaUnresolvedCount = items.filter(i => !i.isResolved).length;
               const isAreaResolved = areaUnresolvedCount === 0;
 
-              // Check permissions
-              const canEdit = currentUser.role === 'GENERAL' || currentUser.areaId === areaId;
+              // Permission Logic:
+              // User can edit if Role is GENERAL OR User's AreaIDs include this areaId
+              const canEdit = currentUser.role === 'GENERAL' || (currentUser.areaIds && currentUser.areaIds.includes(areaId));
 
               return (
-                <div key={areaId} className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
-                    <h4 className="font-semibold text-gray-700 flex items-center gap-2">
+                <div key={areaId} className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                  <div className="bg-gray-100 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                    <h4 className="font-bold text-gray-700 flex items-center gap-2">
                        {areaName}
                        {isAreaResolved ? (
-                         <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">OK</span>
+                         <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">OK</span>
                        ) : (
-                         <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">{areaUnresolvedCount} Pendentes</span>
+                         <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full border border-red-200">{areaUnresolvedCount} Pendentes</span>
                        )}
                     </h4>
                     
                     {!isAreaResolved && (
                       <button 
-                        onClick={() => handleNotifyArea(areaName)}
-                        className="text-xs flex items-center gap-1 text-primary-600 hover:text-primary-800 hover:underline"
-                        title="Enviar e-mail de cobrança para esta área"
+                        onClick={() => handleNotifyArea(areaId, areaName)}
+                        className="text-xs flex items-center gap-1 text-primary-600 hover:text-primary-800 hover:bg-primary-50 px-2 py-1 rounded transition-colors"
+                        title={`Notificar emails: ${area?.emails.join(', ')}`}
                       >
                         <Send className="w-3 h-3" />
-                        Notificar {areaName}
+                        Cobrar Área
                       </button>
                     )}
                   </div>
                   
                   <div className="divide-y divide-gray-100">
                     {items.map((item) => (
-                      <div 
-                        key={item.id} 
-                        className={`flex items-start gap-3 p-4 transition-all ${item.isResolved ? 'bg-gray-50' : 'bg-white'}`}
-                      >
-                        {/* Checkbox Section */}
-                        <div className="pt-0.5">
-                          {canEdit ? (
-                            <input
-                              type="checkbox"
-                              checked={item.isResolved}
-                              onChange={(e) => handleCheckboxChange(item.id, e.target.checked)}
-                              className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500 cursor-pointer"
-                            />
-                          ) : (
-                            <div className="w-5 h-5 flex items-center justify-center">
-                              {item.isResolved ? (
-                                <input type="checkbox" checked disabled className="w-5 h-5 text-gray-400 rounded" />
-                              ) : (
-                                <Lock className="w-4 h-4 text-gray-400" title="Você não tem permissão para resolver este item" />
-                              )}
+                      <div key={item.id} className={`p-4 transition-all ${item.isResolved ? 'bg-green-50/30' : 'bg-white'}`}>
+                        
+                        {/* Header Row: Description + Area Reassign */}
+                        <div className="flex justify-between items-start mb-3 gap-4">
+                            <div className="flex items-start gap-2">
+                                <div className={`mt-1 p-1 rounded-full ${item.isResolved ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                                    {item.isResolved ? <Check className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
+                                </div>
+                                <div>
+                                    <span className={`text-sm font-medium ${item.isResolved ? 'text-gray-600 line-through' : 'text-gray-900'}`}>
+                                        {item.description}
+                                    </span>
+                                    {item.isResolved && item.resolvedBy && (
+                                        <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                                            <UserIcon className="w-3 h-3" /> Resolvido por ID: {item.resolvedBy} em {new Date(item.resolvedAt!).toLocaleDateString()}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
-                          )}
+
+                            {/* Area Reassignment (Only if not resolved) */}
+                            {!item.isResolved && (
+                                <div className="relative group shrink-0">
+                                    <select
+                                        value={item.areaId}
+                                        onChange={(e) => handleAreaChange(item.id, e.target.value)}
+                                        className="text-xs border border-gray-300 rounded-md py-1 pl-2 pr-6 appearance-none cursor-pointer hover:border-primary-400 focus:ring-1 focus:ring-primary-500 bg-white text-gray-600 shadow-sm"
+                                        title="Reatribuir área responsável"
+                                    >
+                                        {areas.map(a => (
+                                        <option key={a.id} value={a.id}>{a.name}</option>
+                                        ))}
+                                    </select>
+                                    <ArrowRightLeft className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" />
+                                </div>
+                            )}
                         </div>
 
-                        {/* Description Section */}
-                        <div className="flex-1">
-                          <span className={`text-base ${item.isResolved ? 'line-through text-gray-500' : 'text-gray-800'}`}>
-                            {item.description}
-                          </span>
-                          {!canEdit && !item.isResolved && (
-                             <p className="text-xs text-red-500 mt-1">Apenas usuários da área "{areaName}" ou Geral podem resolver.</p>
-                          )}
-                          {item.isResolved && item.resolvedBy && (
-                            <p className="text-xs text-green-600 mt-1">Resolvido por ID: {item.resolvedBy} em {new Date(item.resolvedAt!).toLocaleDateString()}</p>
-                          )}
+                        {/* Action Area */}
+                        <div className="pl-8">
+                            {item.isResolved ? (
+                                <div className="flex items-start gap-2">
+                                    <div className="flex-1 bg-white border border-green-200 rounded-md p-3 text-sm text-gray-700 relative">
+                                        <span className="absolute top-0 left-0 bg-green-100 text-green-800 text-[10px] px-1.5 py-0.5 rounded-br font-bold uppercase">Solução</span>
+                                        <p className="mt-2">{item.solutionNotes}</p>
+                                    </div>
+                                    {/* Undo Button (Only for current user session or authorized) */}
+                                    {canEdit && (
+                                        <button 
+                                            onClick={() => handleUndoItem(item.id)}
+                                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                                            title="Desfazer resolução"
+                                        >
+                                            <Undo2 className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex items-start gap-3">
+                                    {canEdit ? (
+                                        <>
+                                            <div className="flex-1">
+                                                <textarea 
+                                                    value={notesInput[item.id] || ''}
+                                                    onChange={(e) => handleInputChange(item.id, e.target.value)}
+                                                    className="w-full text-sm border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent min-h-[60px] resize-none"
+                                                    placeholder="Descreva o que foi feito no ERP para corrigir esta inconsistência (obrigatório para liberar)..."
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => handleResolveItem(item.id)}
+                                                disabled={!notesInput[item.id] || notesInput[item.id].trim().length < 5}
+                                                className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-600 hover:bg-primary-700 disabled:bg-gray-200 disabled:text-gray-400 text-white flex items-center justify-center shadow-md transition-all transform active:scale-95"
+                                                title="Confirmar correção"
+                                            >
+                                                <Check className="w-5 h-5" />
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <div className="flex items-center gap-2 text-sm text-gray-500 italic bg-gray-50 px-3 py-2 rounded-md border border-gray-200 w-full">
+                                            <Lock className="w-4 h-4" />
+                                            Apenas usuários de "{areaName}" podem resolver este item.
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
-                        {/* Area Reassignment Dropdown */}
-                        <div className="flex items-center">
-                           <div className="relative group">
-                              <select
-                                value={item.areaId}
-                                onChange={(e) => handleAreaChange(item.id, e.target.value)}
-                                disabled={item.isResolved}
-                                className={`text-xs border rounded-md py-1 pl-2 pr-6 appearance-none cursor-pointer focus:ring-1 focus:ring-primary-500 focus:outline-none bg-white ${item.isResolved ? 'opacity-50 cursor-not-allowed border-gray-200' : 'border-gray-300 hover:border-primary-400 text-gray-600'}`}
-                                title="Reatribuir área responsável"
-                              >
-                                {areas.map(a => (
-                                  <option key={a.id} value={a.id}>{a.name}</option>
-                                ))}
-                              </select>
-                              {!item.isResolved && (
-                                <ArrowRightLeft className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" />
-                              )}
-                           </div>
-                        </div>
-
-                        {/* Status Tag */}
-                        {item.isResolved && (
-                          <span className="flex-shrink-0 text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded">
-                            Corrigido
-                          </span>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -246,34 +304,10 @@ export const InconsistencyModal: React.FC<InconsistencyModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-6 bg-gray-50 border-t border-gray-200">
-           {/* Observations Area */}
-           <div className="mb-6">
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Observações Gerais <span className="text-red-500">*</span>
-              </label>
-              <span className={`text-xs font-medium ${isSaveDisabled ? 'text-red-500' : 'text-green-600'}`}>
-                {observationLength}/{MIN_OBSERVATION_LENGTH} caracteres
-              </span>
-            </div>
-            <textarea
-              className={`w-full h-24 p-3 border rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-sm transition-all ${isSaveDisabled ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
-              placeholder="Descreva detalhadamente as ações tomadas... (Mínimo 50 caracteres)"
-              value={localInvoice.observations || ''}
-              onChange={(e) => handleObservationChange(e.target.value)}
-            />
-            {isSaveDisabled && (
-              <p className="text-xs text-red-500 mt-1">
-                É necessário descrever a solução com pelo menos {MIN_OBSERVATION_LENGTH} caracteres.
-              </p>
-            )}
-          </div>
-
-          <div className="flex justify-between items-center">
+        <div className="p-6 bg-white border-t border-gray-200 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
             <button
               onClick={onClose}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-md font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md font-medium transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               Voltar
@@ -288,18 +322,12 @@ export const InconsistencyModal: React.FC<InconsistencyModalProps> = ({
               </button>
               <button
                 onClick={handleSave}
-                disabled={isSaveDisabled}
-                className={`flex items-center gap-2 px-6 py-2 rounded-md shadow-sm font-medium transition-all transform active:scale-95 ${
-                  isSaveDisabled 
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                    : 'bg-primary-600 hover:bg-primary-700 text-white'
-                }`}
+                className="flex items-center gap-2 px-8 py-2.5 rounded-md shadow-md font-medium bg-gray-900 text-white hover:bg-gray-800 transition-all"
               >
                 <Save className="w-4 h-4" />
-                Confirmar
+                Salvar e Fechar
               </button>
             </div>
-          </div>
         </div>
       </div>
     </div>

@@ -1,15 +1,29 @@
+
 export interface Area {
   id: string;
   name: string;
+  emails: string[]; // List of emails for this area (e.g. sector alias)
 }
 
 export type UserRole = 'GENERAL' | 'AREA_SPECIALIST';
 
+export type PagePermission = 'dashboard' | 'reports' | 'areas' | 'users';
+export type ReportPermission = 'proactivity' | 'motives';
+
 export interface User {
   id: string;
-  name: string;
+  name: string; // Full Name
   role: UserRole;
-  areaId?: string; // If role is AREA_SPECIALIST, this is required
+  
+  // Consinco Specifics
+  code: string;
+  consincoUser: string;
+  email: string;
+
+  // Permissions & Scope
+  areaIds: string[]; // Can belong to multiple areas
+  allowedPages: PagePermission[]; 
+  allowedReports: ReportPermission[];
 }
 
 export interface Inconsistency {
@@ -17,6 +31,7 @@ export interface Inconsistency {
   description: string;
   isResolved: boolean;
   areaId: string; // Linked to Area
+  solutionNotes?: string; // Specific note on how this was resolved
   resolvedAt?: string; // ISO Date string of when specific item was resolved
   resolvedBy?: string; // User ID who resolved it
 }
@@ -30,7 +45,6 @@ export interface Invoice {
   issueDate: string; // ISO Date string YYYY-MM-DD
   resolvedAt?: string; // ISO Date string, optional (when whole invoice was finished)
   inconsistencies: Inconsistency[];
-  observations?: string;
 }
 
 export interface FilterState {
