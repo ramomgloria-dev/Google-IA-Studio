@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Invoice, Area, User, Inconsistency } from '../types';
-import { X, Save, AlertTriangle, ArrowLeft, Building2, Key, FileText, Send, Lock } from 'lucide-react';
+import { X, Save, AlertTriangle, ArrowLeft, Building2, Key, FileText, Send, Lock, ArrowRightLeft } from 'lucide-react';
 
 interface InconsistencyModalProps {
   invoice: Invoice | null;
@@ -44,6 +44,18 @@ export const InconsistencyModal: React.FC<InconsistencyModalProps> = ({
     });
   };
 
+  const handleAreaChange = (inconsistencyId: string, newAreaId: string) => {
+    setLocalInvoice((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        inconsistencies: prev.inconsistencies.map((inc) =>
+          inc.id === inconsistencyId ? { ...inc, areaId: newAreaId } : inc
+        ),
+      };
+    });
+  };
+
   const handleObservationChange = (text: string) => {
     setLocalInvoice((prev) => {
       if (!prev) return null;
@@ -66,12 +78,12 @@ export const InconsistencyModal: React.FC<InconsistencyModalProps> = ({
   const isSaveDisabled = observationLength < MIN_OBSERVATION_LENGTH;
 
   // Group inconsistencies by Area
-  const inconsistenciesByArea = localInvoice.inconsistencies.reduce((acc, inc) => {
+  const inconsistenciesByArea = localInvoice.inconsistencies.reduce<Record<string, Inconsistency[]>>((acc, inc) => {
     const areaId = inc.areaId;
     if (!acc[areaId]) acc[areaId] = [];
     acc[areaId].push(inc);
     return acc;
-  }, {} as Record<string, Inconsistency[]>);
+  }, {});
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200">
@@ -118,7 +130,7 @@ export const InconsistencyModal: React.FC<InconsistencyModalProps> = ({
           <div className="space-y-6">
             {Object.entries(inconsistenciesByArea).map(([areaId, items]: [string, Inconsistency[]]) => {
               const area = areas.find(a => a.id === areaId);
-              const areaName = area ? area.name : 'Área Desconhecida';
+              const areaName = area ? area.name : 'Área Desconhecida / Removida';
               
               const areaUnresolvedCount = items.filter(i => !i.isResolved).length;
               const isAreaResolved = areaUnresolvedCount === 0;
@@ -152,30 +164,31 @@ export const InconsistencyModal: React.FC<InconsistencyModalProps> = ({
                   
                   <div className="divide-y divide-gray-100">
                     {items.map((item) => (
-                      <label 
+                      <div 
                         key={item.id} 
-                        className={`flex items-start gap-3 p-4 transition-all ${
-                          !canEdit ? 'bg-gray-50 opacity-70 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50'
-                        } ${item.isResolved ? 'bg-gray-50' : 'bg-white'}`}
+                        className={`flex items-start gap-3 p-4 transition-all ${item.isResolved ? 'bg-gray-50' : 'bg-white'}`}
                       >
+                        {/* Checkbox Section */}
                         <div className="pt-0.5">
                           {canEdit ? (
                             <input
                               type="checkbox"
                               checked={item.isResolved}
                               onChange={(e) => handleCheckboxChange(item.id, e.target.checked)}
-                              className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                              className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500 cursor-pointer"
                             />
                           ) : (
                             <div className="w-5 h-5 flex items-center justify-center">
                               {item.isResolved ? (
                                 <input type="checkbox" checked disabled className="w-5 h-5 text-gray-400 rounded" />
                               ) : (
-                                <Lock className="w-4 h-4 text-gray-400" />
+                                <Lock className="w-4 h-4 text-gray-400" title="Você não tem permissão para resolver este item" />
                               )}
                             </div>
                           )}
                         </div>
+
+                        {/* Description Section */}
                         <div className="flex-1">
                           <span className={`text-base ${item.isResolved ? 'line-through text-gray-500' : 'text-gray-800'}`}>
                             {item.description}
@@ -184,8 +197,34 @@ export const InconsistencyModal: React.FC<InconsistencyModalProps> = ({
                              <p className="text-xs text-red-500 mt-1">Apenas usuários da área "{areaName}" ou Geral podem resolver.</p>
                           )}
                         </div>
-                        {item.isResolved && <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded">Corrigido</span>}
-                      </label>
+
+                        {/* Area Reassignment Dropdown */}
+                        <div className="flex items-center">
+                           <div className="relative group">
+                              <select
+                                value={item.areaId}
+                                onChange={(e) => handleAreaChange(item.id, e.target.value)}
+                                disabled={item.isResolved}
+                                className={`text-xs border rounded-md py-1 pl-2 pr-6 appearance-none cursor-pointer focus:ring-1 focus:ring-primary-500 focus:outline-none bg-white ${item.isResolved ? 'opacity-50 cursor-not-allowed border-gray-200' : 'border-gray-300 hover:border-primary-400 text-gray-600'}`}
+                                title="Reatribuir área responsável"
+                              >
+                                {areas.map(a => (
+                                  <option key={a.id} value={a.id}>{a.name}</option>
+                                ))}
+                              </select>
+                              {!item.isResolved && (
+                                <ArrowRightLeft className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" />
+                              )}
+                           </div>
+                        </div>
+
+                        {/* Status Tag */}
+                        {item.isResolved && (
+                          <span className="flex-shrink-0 text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded">
+                            Corrigido
+                          </span>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>
