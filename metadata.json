@@ -1,5 +1,5 @@
 {
-  "name": "FiscalInconsistencyManager",
+  "name": "NF ENTRADA SN(INSCONSISTENCIAS)",
   "description": "A dashboard to manage and resolve inconsistencies in fiscal invoices (NF-e).",
   "requestFramePermissions": []
 }
